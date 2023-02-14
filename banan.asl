@@ -8,8 +8,7 @@ startup
 
 init
 {
-    current.scene = "";
-    old.scene = "";
+    old.scene = current.scene = "";
     vars.EndingsFound = false;
     vars.ending1ObjectPtr = IntPtr.Zero;
     vars.ending2ObjectPtr = IntPtr.Zero;
@@ -22,24 +21,20 @@ update
 
     if(timer.CurrentPhase == TimerPhase.Running && !vars.EndingsFound)
     {
-        var lastObjectTransformPtr = IntPtr.Zero;
-        new DeepPointer(vars.Helper.Scenes.Active.Address + 0xB0, 0x10, 0x0).DerefOffsets(game, out lastObjectTransformPtr);
-        var lastObjectName = new DeepPointer(lastObjectTransformPtr + 0x30, 0x60, 0x0).DerefString(game, 255);
+        var lastObjectTransformPtr = vars.Helper.Deref(vars.Helper.Scenes.Active.Address + 0xB0, 0x10, 0x0);
+        var lastObjectName = vars.Helper.ReadString(255, ReadStringType.UTF8, lastObjectTransformPtr + 0x30, 0x60, 0x0);
         
         if(lastObjectName == "Canvas")
         {
-            print("Endings found");
-            IntPtr objPtr = IntPtr.Zero;
-            new DeepPointer(lastObjectTransformPtr + 0x70, 0x8 * 0x8, 0x30, 0x0).DerefOffsets(game, out objPtr);
-            vars.ending1ObjectPtr = objPtr;
-            new DeepPointer(lastObjectTransformPtr + 0x70, 0x7 * 0x8, 0x30, 0x0).DerefOffsets(game, out objPtr);
-            vars.ending2ObjectPtr = objPtr;
+            vars.Log("Endings found");
+            vars.ending1ObjectPtr = vars.Helper.Deref(lastObjectTransformPtr + 0x70, 0x8 * 0x8, 0x30, 0x0);
+            vars.ending2ObjectPtr = vars.Helper.Deref(lastObjectTransformPtr + 0x70, 0x7 * 0x8, 0x30, 0x0);
             vars.EndingsFound = true;
         }
     }
 
-    current.ending1active = vars.EndingsFound ? game.ReadValue<bool>((IntPtr)vars.ending1ObjectPtr + 0x56) : false;
-    current.ending2active = vars.EndingsFound ? game.ReadValue<bool>((IntPtr)vars.ending2ObjectPtr + 0x56) : false;
+    current.ending1active = vars.EndingsFound && vars.Helper.Read<bool>(vars.ending1ObjectPtr + 0x56);
+    current.ending2active = vars.EndingsFound && vars.Helper.Read<bool>(vars.ending2ObjectPtr + 0x56);
 }
 
 start
